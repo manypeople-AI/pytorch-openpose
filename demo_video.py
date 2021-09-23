@@ -43,6 +43,7 @@ from src.hand import Hand
 body_estimation = Body('model/body_pose_model.pth')
 hand_estimation = Hand('model/hand_pose_model.pth')
 
+
 def process_frame(frame, body=True, hands=True):
     canvas = copy.deepcopy(frame)
     if body:
@@ -59,13 +60,14 @@ def process_frame(frame, body=True, hands=True):
         canvas = util.draw_handpose(canvas, all_hand_peaks)
     return canvas
 
+
 # writing video with ffmpeg because cv2 writer failed
 # https://stackoverflow.com/questions/61036822/opencv-videowriter-produces-cant-find-starting-number-error
 import ffmpeg
 
 # open specified video
 parser = argparse.ArgumentParser(
-        description="Process a video annotating poses detected.")
+    description="Process a video annotating poses detected.")
 parser.add_argument('file', type=str, help='Video file location to process.')
 parser.add_argument('--no_hands', action='store_true', help='No hand pose')
 parser.add_argument('--no_body', action='store_true', help='No body pose')
@@ -84,7 +86,7 @@ input_vcodec = videoinfo["codec_name"]
 
 # define a writer object to write to a movidified file
 postfix = info["format"]["format_name"].split(",")[0]
-output_file = ".".join(video_file.split(".")[:-1])+".processed." + postfix
+output_file = ".".join(video_file.split(".")[:-1]) + ".processed." + postfix
 
 
 class Writer():
@@ -94,14 +96,14 @@ class Writer():
             os.remove(output_file)
         self.ff_proc = (
             ffmpeg
-            .input('pipe:',
-                   format='rawvideo',
-                   pix_fmt="bgr24",
-                   s='%sx%s'%(input_framesize[1],input_framesize[0]),
-                   r=input_fps)
-            .output(output_file, pix_fmt=input_pix_fmt, vcodec=input_vcodec)
-            .overwrite_output()
-            .run_async(pipe_stdin=True)
+                .input('pipe:',
+                       format='rawvideo',
+                       pix_fmt="bgr24",
+                       s='%sx%s' % (input_framesize[1], input_framesize[0]),
+                       r=input_fps)
+                .output(output_file, pix_fmt=input_pix_fmt, vcodec=input_vcodec)
+                .overwrite_output()
+                .run_async(pipe_stdin=True)
         )
 
     def __call__(self, frame):
@@ -113,27 +115,28 @@ class Writer():
 
 
 writer = None
-while(cap.isOpened()):
+fourcc = cv2.VideoWriter_fourcc(*'DIVX')
+w = round(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+h = round(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+fps = cap.get(cv2.CAP_PROP_FPS)  # 카메라에 따라 값이 정상적, 비정상적
+while (cap.isOpened()):
     ret, frame = cap.read()
     if frame is None:
         break
 
     posed_frame = process_frame(frame, body=not args.no_body,
-                                       hands=not args.no_hands)
+                                hands=not args.no_hands)
 
-    if writer is None:
-        input_framesize = posed_frame.shape[:2]
-        writer = Writer(output_file, input_fps, input_framesize, input_pix_fmt,
-                        input_vcodec)
+    # if writer is None:
+    #     input_framesize = posed_frame.shape[:2]
+    #     writer = Writer(output_file, input_fps, input_framesize, input_pix_fmt,
+    #                     input_vcodec)
 
-    cv2.imshow('frame', posed_frame)
+    # cv2.imshow('frame', posed_frame)
 
     # write the frame
-    writer(posed_frame)
+    out = cv2.VideoWriter('output.avi', fourcc, fps, (w, h))
+    # writer(posed_frame)
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
-
-cap.release()
-writer.close()
-cv2.destroyAllWindows()
