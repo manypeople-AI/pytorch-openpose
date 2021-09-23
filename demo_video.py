@@ -127,16 +127,20 @@ while (cap.isOpened()):
     posed_frame = process_frame(frame, body=not args.no_body,
                                 hands=not args.no_hands)
 
-    # if writer is None:
-    #     input_framesize = posed_frame.shape[:2]
-    #     writer = Writer(output_file, input_fps, input_framesize, input_pix_fmt,
-    #                     input_vcodec)
+    if writer is None:
+        input_framesize = posed_frame.shape[:2]
+        writer = Writer(output_file, input_fps, input_framesize, input_pix_fmt,
+                        input_vcodec)
 
-    # cv2.imshow('frame', posed_frame)
+    cv2.imshow('frame', posed_frame)
 
     # write the frame
-    out = cv2.VideoWriter('output.avi', fourcc, fps, (w, h))
+    out = cv2.VideoWriter('output.api', fourcc, fps, (w, h))
     # writer(posed_frame)
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
+
+cap.release()
+writer.close()
+cv2.destroyAllWindows()
