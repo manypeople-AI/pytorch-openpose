@@ -9,9 +9,15 @@ import json
 # video file processing setup
 # from: https://stackoverflow.com/a/61927951
 import argparse
+# subprocess : 현재 소스코드 안에서 다른 프로세스를 실행하게 해주며 그 과정에서 데이터의
+# 입출력을 제어하기 위함. 즉, 소스코드를 작성하고 실행하면 그 결과가 쉘에 출력되는 것이
+# 일반적이지만, subprocess를 이용하면 subprocess가 중간에서 결과를 가로채서
+# 결과값을 또다른 변수에 저장함
 import subprocess
 import sys
 from pathlib import Path
+# Namedtuple: collections.namedtuple의 새 버전
+#
 from typing import NamedTuple
 
 
@@ -20,7 +26,7 @@ class FFProbeResult(NamedTuple):
     json: str
     error: str
 
-
+# def 뒤에 -> : return 값이 어떠한 상태인지를 명시해줌
 def ffprobe(file_path) -> FFProbeResult:
     command_array = ["ffprobe",
                      "-v", "quiet",
@@ -48,14 +54,16 @@ def process_frame(frame, body=True, hands=True):
     canvas = copy.deepcopy(frame)
     if body:
         candidate, subset = body_estimation(frame)
+        print(candidate)
+        raise IOError
         canvas = util.draw_bodypose(canvas, candidate, subset)
     if hands:
         hands_list = util.handDetect(candidate, subset, frame)
         all_hand_peaks = []
         for x, y, w, is_left in hands_list:
-            peaks = hand_estimation(frame[y:y+w, x:x+w, :])
-            peaks[:, 0] = np.where(peaks[:, 0]==0, peaks[:, 0], peaks[:, 0]+x)
-            peaks[:, 1] = np.where(peaks[:, 1]==0, peaks[:, 1], peaks[:, 1]+y)
+            peaks = hand_estimation(frame[y:y + w, x:x + w, :])
+            peaks[:, 0] = np.where(peaks[:, 0] == 0, peaks[:, 0], peaks[:, 0] + x)
+            peaks[:, 1] = np.where(peaks[:, 1] == 0, peaks[:, 1], peaks[:, 1] + y)
             all_hand_peaks.append(peaks)
         canvas = util.draw_handpose(canvas, all_hand_peaks)
     return canvas
@@ -127,20 +135,20 @@ while (cap.isOpened()):
     posed_frame = process_frame(frame, body=not args.no_body,
                                 hands=not args.no_hands)
 
-    if writer is None:
-        input_framesize = posed_frame.shape[:2]
-        writer = Writer(output_file, input_fps, input_framesize, input_pix_fmt,
-                        input_vcodec)
+    # if writer is None:
+    #     input_framesize = posed_frame.shape[:2]
+    #     writer = Writer(output_file, input_fps, input_framesize, input_pix_fmt,
+    #                     input_vcodec)
 
-    cv2.imshow('frame', posed_frame)
+    # cv2.imshow('frame', posed_frame)
 
     # write the frame
-    out = cv2.VideoWriter('output.api', fourcc, fps, (w, h))
+    out = cv2.VideoWriter('output.avi', fourcc, fps, (w, h))
     # writer(posed_frame)
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
 cap.release()
-writer.close()
+# writer.close()
 cv2.destroyAllWindows()
